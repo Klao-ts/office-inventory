@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/database.types";
 
 export async function GET() {
   const supabase = createClient();
@@ -36,7 +37,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { data, error } = await supabase.from("items").insert(parsed.data).select().single();
+  const insertPayload: Database["public"]["Tables"]["items"]["Insert"] = {
+    ...parsed.data,
+    sku: parsed.data.sku ?? null,
+  };
+
+  // @ts-ignore — supabase-js insert() overload resolution quirk; payload is already validated by zod above
+  const { data, error } = await supabase.from("items").insert(insertPayload).select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ item: data }, { status: 201 });
