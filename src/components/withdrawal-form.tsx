@@ -37,15 +37,20 @@ const formSchema = z.object({
   department: z.string().min(2, "Enter your department"),
   items: z
     .array(
-      z.object({
-        item_id: z.string().uuid("Select an item"),
-        quantity: z.coerce.number().int().min(1, "Min 1"),
-        reason_category: z.enum(
-          ["general_use", "client_meeting", "new_hire", "replacement", "project", "other"],
-          { errorMap: () => ({ message: "Select a reason" }) }
-        ),
-        reason_note: z.string().optional(),
-      })
+      z
+        .object({
+          item_id: z.string().uuid("Select an item"),
+          quantity: z.coerce.number().int().min(1, "Min 1"),
+          reason_category: z.enum(
+            ["general_use", "client_meeting", "new_hire", "replacement", "project", "other"],
+            { required_error: "Select a reason", invalid_type_error: "Select a reason" }
+          ),
+          reason_note: z.string().optional(),
+        })
+        .refine((row) => row.reason_category !== "other" || !!row.reason_note?.trim(), {
+          message: "Please describe the reason",
+          path: ["reason_note"],
+        })
     )
     .min(1, "Add at least one item"),
 });
@@ -108,6 +113,14 @@ export function WithdrawalForm({
       const item = items.find((i) => i.id === row.item_id);
       if (item && row.quantity > item.current_stock) {
         toast.error(`${item.name}: only ${item.current_stock} left in stock`);
+        return;
+      }
+      if (!row.reason_category) {
+        toast.error(`${item?.name ?? "One of your items"}: please select a reason`);
+        return;
+      }
+      if (row.reason_category === "other" && !row.reason_note?.trim()) {
+        toast.error(`${item?.name ?? "One of your items"}: please describe the reason`);
         return;
       }
     }
@@ -260,11 +273,16 @@ export function WithdrawalForm({
                       </div>
 
                       {selectedReason === "other" && (
-                        <Input
-                          placeholder="Briefly describe why"
-                          className="h-8"
-                          {...register(`items.${index}.reason_note`)}
-                        />
+                        <div className="space-y-1">
+                          <Input
+                            placeholder="Briefly describe why"
+                            className="h-8"
+                            {...register(`items.${index}.reason_note`)}
+                          />
+                          {errors.items?.[index]?.reason_note && (
+                            <p className="text-xs text-destructive">{errors.items[index]?.reason_note?.message}</p>
+                          )}
+                        </div>
                       )}
                     </div>
 
