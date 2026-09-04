@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { QrGeneratorCard } from "@/components/qr-generator";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ScanLine, ClipboardList, ShieldCheck } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ClipboardList, ShieldCheck } from "lucide-react";
 
 export default function HomePage() {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -17,23 +16,13 @@ export default function HomePage() {
 
       <QrGeneratorCard url={withdrawUrl} />
 
-      <div className="grid w-full gap-4 sm:grid-cols-3">
+      <div className="grid w-full gap-4 sm:grid-cols-2">
         <Link href="/withdraw">
           <Card className="h-full transition-shadow hover:shadow-md">
             <CardHeader className="items-center text-center">
               <ClipboardList className="mb-2 h-6 w-6 text-primary" />
               <CardTitle className="text-base">Request Item</CardTitle>
               <CardDescription>Open the withdrawal form</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-
-        <Link href="/withdraw?scan=1">
-          <Card className="h-full transition-shadow hover:shadow-md">
-            <CardHeader className="items-center text-center">
-              <ScanLine className="mb-2 h-6 w-6 text-primary" />
-              <CardTitle className="text-base">Scan QR</CardTitle>
-              <CardDescription>Use your camera to scan</CardDescription>
             </CardHeader>
           </Card>
         </Link>

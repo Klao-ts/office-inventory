@@ -2,12 +2,21 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
+const reasonEnum = z.enum(["general_use", "client_meeting", "new_hire", "replacement", "project", "other"]);
+
 const bodySchema = z.object({
   employee_name: z.string().min(2),
-  employee_id: z.string().optional().nullable(),
   department: z.string().min(2),
-  item_id: z.string().uuid(),
-  quantity: z.coerce.number().int().min(1),
+  items: z
+    .array(
+      z.object({
+        item_id: z.string().uuid(),
+        quantity: z.coerce.number().int().min(1),
+        reason_category: reasonEnum,
+        reason_note: z.string().optional().nullable(),
+      })
+    )
+    .min(1, "Add at least one item"),
 });
 
 export async function POST(request: Request) {
@@ -18,20 +27,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { employee_name, employee_id, department, item_id, quantity } = parsed.data;
+  const { employee_name, department, items } = parsed.data;
   const supabase = createClient();
 
-  // withdraw_item() is a SECURITY DEFINER Postgres function that locks the
-  // item row (SELECT ... FOR UPDATE), re-checks stock, deducts, and inserts
-  // the withdrawal record — all inside one transaction. This is what makes
-  // concurrent withdrawals safe (no race condition between check and update).
+  const rpcItems = items.map((row) => ({
+    item_id: row.item_id,
+    quantity: row.quantity,
+    reason_category: row.reason_category,
+    reason_note: row.reason_category === "other" ? row.reason_note ?? null : null,
+  }));
+
   // @ts-ignore — supabase-js generic overload resolution quirk; payload is already validated by zod above
-  const { data, error } = await supabase.rpc("withdraw_item", {
-    p_item_id: item_id,
+  const { data, error } = await supabase.rpc("withdraw_items", {
     p_employee_name: employee_name,
-    p_employee_id: employee_id ?? null,
     p_department: department,
-    p_quantity: quantity,
+    p_items: rpcItems,
   });
 
   if (error) {
@@ -39,5 +49,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status });
   }
 
-  return NextResponse.json({ withdrawal: data }, { status: 201 });
+  return NextResponse.json({ withdrawals: data }, { status: 201 });
 }
