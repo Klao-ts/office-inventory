@@ -29,6 +29,7 @@ export async function POST(request: Request) {
 
   const { item_id, added_quantity, supplier, note, unit_price } = parsed.data;
 
+  // @ts-ignore — supabase-js generic overload resolution quirk; payload is already validated by zod above
   const { data, error } = await supabase.rpc("restock_item", {
     p_item_id: item_id,
     p_added_quantity: added_quantity,

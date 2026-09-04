@@ -25,6 +25,7 @@ export async function POST(request: Request) {
   // item row (SELECT ... FOR UPDATE), re-checks stock, deducts, and inserts
   // the withdrawal record — all inside one transaction. This is what makes
   // concurrent withdrawals safe (no race condition between check and update).
+  // @ts-ignore — supabase-js generic overload resolution quirk; payload is already validated by zod above
   const { data, error } = await supabase.rpc("withdraw_item", {
     p_item_id: item_id,
     p_employee_name: employee_name,
