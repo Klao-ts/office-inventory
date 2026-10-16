@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { checkAndNotifyLowStock } from "@/lib/notify";
 
 const reasonEnum = z.enum(["general_use", "client_meeting", "new_hire", "replacement", "project", "other"]);
 
@@ -47,6 +48,13 @@ export async function POST(request: Request) {
   if (error) {
     const status = error.message.includes("Insufficient stock") ? 409 : 400;
     return NextResponse.json({ error: error.message }, { status });
+  }
+
+  // The withdrawal already succeeded. An email problem must never turn it into an error.
+  try {
+    await checkAndNotifyLowStock(items.map((row) => ({ item_id: row.item_id, quantity: row.quantity })));
+  } catch (err) {
+    console.error("Low-stock notification failed:", err);
   }
 
   return NextResponse.json({ withdrawals: data }, { status: 201 });
