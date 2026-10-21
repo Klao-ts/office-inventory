@@ -13,10 +13,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="min-h-screen bg-slate-50">
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link href="/admin" className="flex items-center gap-2 font-semibold text-slate-900">
-            <Package className="h-5 w-5 text-primary" />
-            Inventory Admin
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link href="/admin" className="flex items-center gap-2 font-semibold text-slate-900">
+              <Package className="h-5 w-5 text-primary" />
+              Inventory Admin
+            </Link>
+            <nav className="flex items-center gap-4 text-sm text-slate-600">
+              <Link href="/admin" className="hover:text-slate-900">
+                Dashboard
+              </Link>
+              <Link href="/admin/notifications" className="hover:text-slate-900">
+                Notifications
+              </Link>
+            </nav>
+          </div>
           <div className="flex items-center gap-4 text-sm text-slate-500">
             <span>{user?.email}</span>
             <SignOutButton />
