@@ -6,7 +6,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 const createSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email address"),
   label: z.string().trim().max(60).optional().nullable(),
-  branch: z.enum(["office", "factory", "store"]).nullable(),
+  branch: z.enum(["office", "factory"]).nullable(),
   notify_low_stock: z.boolean(),
   notify_purchase_request: z.boolean(),
 });

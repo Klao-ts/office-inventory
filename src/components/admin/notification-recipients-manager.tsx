@@ -13,7 +13,7 @@ export type Recipient = {
   id: string;
   email: string;
   label: string | null;
-  branch: "office" | "factory" | "store" | null;
+  branch: "office" | "factory" | null;
   notify_low_stock: boolean;
   notify_purchase_request: boolean;
   is_active: boolean;
@@ -22,7 +22,6 @@ export type Recipient = {
 const BRANCH_LABELS: Record<string, string> = {
   office: "Office",
   factory: "Factory",
-  store: "Store",
 };
 
 type Patch = Partial<Pick<Recipient, "notify_low_stock" | "notify_purchase_request" | "is_active">>;
@@ -117,7 +116,7 @@ export function NotificationRecipientsManager({ initialRecipients }: { initialRe
               <Label htmlFor="rcpt-label">Name / role (optional)</Label>
               <Input
                 id="rcpt-label"
-                placeholder="e.g. Store manager"
+                placeholder="e.g. Factory manager"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
               />
@@ -135,7 +134,6 @@ export function NotificationRecipientsManager({ initialRecipients }: { initialRe
               <option value="all">All branches</option>
               <option value="office">Office only</option>
               <option value="factory">Factory only</option>
-              <option value="store">Store only</option>
             </select>
           </div>
 

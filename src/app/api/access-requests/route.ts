@@ -5,7 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getMembership, isAllowedEmail } from "@/lib/staff-auth";
 
 const bodySchema = z.object({
-  branch: z.enum(["office", "factory", "store"]),
+  branch: z.enum(["office", "factory"]),
   department: z.string().trim().min(2, "Enter your department").max(100),
 });
 

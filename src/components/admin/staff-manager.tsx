@@ -14,7 +14,7 @@ export type Staff = {
   email: string;
   full_name: string;
   department: string;
-  branch: "office" | "factory" | "store";
+  branch: "office" | "factory";
   role: "staff" | "manager";
   status: "pending" | "approved" | "rejected";
   is_active: boolean;
@@ -23,7 +23,6 @@ export type Staff = {
 const BRANCH_LABELS: Record<string, string> = {
   office: "Office",
   factory: "Factory",
-  store: "Store",
 };
 
 const selectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
@@ -117,7 +116,7 @@ export function StaffManager({ initialStaff }: { initialStaff: Staff[] }) {
   const roster = useMemo(() => staff.filter((s) => s.status !== "pending"), [staff]);
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: roster.length, office: 0, factory: 0, store: 0 };
+    const c: Record<string, number> = { all: roster.length, office: 0, factory: 0 };
     for (const s of roster) c[s.branch] += 1;
     return c;
   }, [roster]);
@@ -225,7 +224,6 @@ export function StaffManager({ initialStaff }: { initialStaff: Staff[] }) {
             >
               <option value="office">Office</option>
               <option value="factory">Factory</option>
-              <option value="store">Store</option>
             </select>
           </div>
 
@@ -258,7 +256,6 @@ export function StaffManager({ initialStaff }: { initialStaff: Staff[] }) {
             <option value="all">All branches ({counts.all})</option>
             <option value="office">Office ({counts.office})</option>
             <option value="factory">Factory ({counts.factory})</option>
-            <option value="store">Store ({counts.store})</option>
           </select>
         </CardHeader>
         <CardContent className="space-y-3">

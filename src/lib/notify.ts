@@ -12,7 +12,6 @@ export type LowStockItem = {
 const BRANCH_LABELS: Record<string, string> = {
   office: "Office",
   factory: "Factory",
-  store: "Store",
 };
 
 function escapeHtml(value: string) {

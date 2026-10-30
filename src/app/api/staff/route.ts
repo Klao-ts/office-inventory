@@ -4,7 +4,7 @@ import { isAdminRequest } from "@/lib/admin-guard";
 import { createServiceClient } from "@/lib/supabase/service";
 
 const bodySchema = z.object({
-  branch: z.enum(["office", "factory", "store"]),
+  branch: z.enum(["office", "factory"]),
   rows: z
     .array(
       z.object({
