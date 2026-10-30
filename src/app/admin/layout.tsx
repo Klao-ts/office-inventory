@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { SignOutButton } from "@/components/admin/sign-out-button";
 import { Package } from "lucide-react";
 
@@ -8,6 +9,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const service = createServiceClient();
+  const { count: pendingCount } = await service
+    .from("staff")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -22,8 +29,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <Link href="/admin" className="hover:text-slate-900">
                 Dashboard
               </Link>
-              <Link href="/admin/staff" className="hover:text-slate-900">
+              <Link href="/admin/staff" className="flex items-center hover:text-slate-900">
                 Staff
+                {pendingCount ? (
+                  <span className="ml-1.5 rounded-full bg-amber-500 px-1.5 text-xs font-semibold text-white">
+                    {pendingCount}
+                  </span>
+                ) : null}
               </Link>
               <Link href="/admin/notifications" className="hover:text-slate-900">
                 Notifications

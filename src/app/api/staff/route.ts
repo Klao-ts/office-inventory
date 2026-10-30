@@ -32,9 +32,16 @@ export async function POST(request: Request) {
 
   // If the same email appears twice in one paste, the last line wins.
   const unique = new Map(rows.map((r) => [r.email, r]));
-  const payload = Array.from(unique.values()).map((r) => ({ ...r, branch, is_active: true }));
+  const decidedAt = new Date().toISOString();
+  const payload = Array.from(unique.values()).map((r) => ({
+    ...r,
+    branch,
+    is_active: true,
+    status: "approved",
+    decided_at: decidedAt,
+  }));
 
-  // Re-pasting a corrected list updates existing people instead of failing.
+  // Re-pasting a corrected list updates existing people (and approves anyone pending).
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("staff")

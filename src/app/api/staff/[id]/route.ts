@@ -10,6 +10,8 @@ const updateSchema = z
     is_active: z.boolean().optional(),
     full_name: z.string().trim().min(1).max(100).optional(),
     department: z.string().trim().min(1).max(100).optional(),
+    role: z.enum(["staff", "manager"]).optional(),
+    status: z.enum(["pending", "approved", "rejected"]).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: "Nothing to update" });
 
@@ -27,8 +29,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
+  const update: Record<string, unknown> = { ...parsed.data };
+  if (parsed.data.status) update.decided_at = new Date().toISOString();
+
   const supabase = createServiceClient();
-  const { data, error } = await supabase.from("staff").update(parsed.data).eq("id", params.id).select().single();
+  const { data, error } = await supabase.from("staff").update(update).eq("id", params.id).select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ staff: data });
