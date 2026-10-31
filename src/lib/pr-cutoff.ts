@@ -28,8 +28,10 @@ export function getNextCutoff(now: Date = new Date()) {
     year: "numeric",
   });
 
+  const iso = new Date(target).toISOString().slice(0, 10);
+
   const daysText =
     daysLeft === 0 ? "Today is the last day" : daysLeft === 1 ? "1 day left" : `${daysLeft} days left`;
 
-  return { label, daysLeft, daysText };
+  return { label, iso, daysLeft, daysText };
 }

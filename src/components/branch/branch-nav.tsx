@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PackageMinus } from "lucide-react";
+import { Home, PackageMinus, ShoppingCart, History } from "lucide-react";
 
 export function BranchNav({ branch, variant }: { branch: string; variant: "top" | "bottom" }) {
   const pathname = usePathname() ?? "";
@@ -10,6 +10,8 @@ export function BranchNav({ branch, variant }: { branch: string; variant: "top" 
   const tabs = [
     { href: `/b/${branch}`, label: "Home", Icon: Home, exact: true },
     { href: `/b/${branch}/withdraw`, label: "Withdraw", Icon: PackageMinus, exact: false },
+    { href: `/b/${branch}/order`, label: "Order Request", Icon: ShoppingCart, exact: false },
+    { href: `/b/${branch}/history`, label: "My History", Icon: History, exact: false },
   ];
 
   const isActive = (tab: (typeof tabs)[number]) =>
@@ -42,7 +44,7 @@ export function BranchNav({ branch, variant }: { branch: string; variant: "top" 
         <Link
           key={tab.href}
           href={tab.href}
-          className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium ${
+          className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
             isActive(tab) ? "text-teal-700" : "text-slate-500"
           }`}
         >
