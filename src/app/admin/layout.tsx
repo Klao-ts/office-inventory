@@ -40,6 +40,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <Link href="/admin/notifications" className="hover:text-slate-900">
                 Notifications
               </Link>
+              <Link href="/admin/qr-codes" className="hover:text-slate-900">
+                QR Codes
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-4 text-sm text-slate-500">
