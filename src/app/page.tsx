@@ -5,9 +5,11 @@ import { Building2, Factory, ShieldCheck } from "lucide-react";
 export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center gap-8 px-4 py-16">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Office Supplies Inventory</h1>
-        <p className="mt-2 text-slate-500">Choose your branch to sign in and withdraw supplies.</p>
+      <div className="flex flex-col items-center text-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/mimetta-logo.svg" alt="Mimetta" className="mb-6 h-10 w-auto" />
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Office Supplies</h1>
+        <p className="mt-2 text-slate-500">Choose your branch to sign in.</p>
       </div>
 
       <div className="grid w-full gap-4 sm:grid-cols-2">
@@ -16,7 +18,7 @@ export default function HomePage() {
             <CardHeader className="items-center text-center">
               <Building2 className="mb-2 h-6 w-6 text-primary" />
               <CardTitle className="text-base">Office</CardTitle>
-              <CardDescription>Withdraw office supplies</CardDescription>
+              <CardDescription>Sign in to the Office branch</CardDescription>
             </CardHeader>
           </Card>
         </Link>
@@ -26,7 +28,7 @@ export default function HomePage() {
             <CardHeader className="items-center text-center">
               <Factory className="mb-2 h-6 w-6 text-primary" />
               <CardTitle className="text-base">Factory</CardTitle>
-              <CardDescription>Withdraw factory supplies</CardDescription>
+              <CardDescription>Sign in to the Factory branch</CardDescription>
             </CardHeader>
           </Card>
         </Link>

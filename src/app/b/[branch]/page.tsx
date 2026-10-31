@@ -1,11 +1,14 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CalendarClock } from "lucide-react";
 import { isBranch, BRANCH_LABELS } from "@/lib/branches";
 import { ALLOWED_EMAIL_DOMAIN, getCurrentStaff, hasAccess, isAllowedEmail } from "@/lib/staff-auth";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getNextCutoff } from "@/lib/pr-cutoff";
 import { GoogleSignIn } from "@/components/branch/google-sign-in";
 import { RequestAccess } from "@/components/branch/request-access";
 import { BranchSignOut } from "@/components/branch/branch-sign-out";
-import { BranchWithdrawalForm, type ItemOption } from "@/components/branch/branch-withdrawal-form";
+import { StockList, type StockItem } from "@/components/branch/stock-list";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +50,55 @@ export default async function BranchPage({
   const { user, email, viaGoogle, member } = await getCurrentStaff(branch);
   const googleName = String(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? "");
 
+  // ---- Approved staff: the Home page for THIS branch only ----
+  if (email && viaGoogle && member && hasAccess(member)) {
+    const service = createServiceClient();
+    const { data: itemRows } = await service
+      .from("items")
+      .select("id, name, category, current_stock, minimum_threshold")
+      .eq("branch", branch)
+      .eq("is_active", true)
+      .order("name");
+
+    const cutoff = getNextCutoff();
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Hello, {member.full_name}</h1>
+          <p className="text-sm text-muted-foreground">
+            {member.department} · {label}
+          </p>
+        </div>
+
+        <Card className="border-teal-200 bg-teal-50">
+          <CardContent className="flex items-start gap-3 pt-6">
+            <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-teal-700" />
+            <div className="space-y-1">
+              <p className="font-medium text-slate-900">
+                Next order cut-off: {cutoff.label} ({cutoff.daysText})
+              </p>
+              <p className="text-sm text-slate-600">
+                Order requests are collected until the 10th of each month. The admin reviews them, and reasonable
+                requests will be ordered.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Link
+          href={`/b/${branch}/withdraw`}
+          className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Withdraw supplies
+        </Link>
+
+        <StockList items={(itemRows ?? []) as StockItem[]} branchLabel={label} />
+      </div>
+    );
+  }
+
+  // ---- Everyone else: sign-in, request access, and status screens ----
   let content: React.ReactNode;
 
   if (!email || !viaGoogle) {
@@ -61,30 +113,6 @@ export default async function BranchPage({
             You&apos;re currently signed in with a password account ({email}). Sign in with Google to continue.
           </p>
         )}
-      </>
-    );
-  } else if (member && hasAccess(member)) {
-    // Items come from the server, filtered to THIS branch only.
-    const service = createServiceClient();
-    const { data: itemRows } = await service
-      .from("items")
-      .select("id, name, category, current_stock, minimum_threshold")
-      .eq("branch", branch)
-      .eq("is_active", true)
-      .order("name");
-
-    content = (
-      <>
-        <BranchWithdrawalForm
-          branch={branch}
-          branchLabel={label}
-          staffName={member.full_name}
-          department={member.department}
-          initialItems={(itemRows ?? []) as ItemOption[]}
-        />
-        <div className="flex justify-center">
-          <BranchSignOut />
-        </div>
       </>
     );
   } else if (member?.status === "pending") {
@@ -120,9 +148,9 @@ export default async function BranchPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-4 py-10">
+    <div className="mx-auto flex max-w-lg flex-col gap-6 py-4">
       <h1 className="text-center text-2xl font-bold text-slate-900">Office Supplies · {label}</h1>
       {content}
-    </main>
+    </div>
   );
 }
