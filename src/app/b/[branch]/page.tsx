@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import { isBranch, BRANCH_LABELS } from "@/lib/branches";
 import { ALLOWED_EMAIL_DOMAIN, getCurrentStaff, hasAccess, isAllowedEmail } from "@/lib/staff-auth";
+import { createServiceClient } from "@/lib/supabase/service";
 import { GoogleSignIn } from "@/components/branch/google-sign-in";
 import { RequestAccess } from "@/components/branch/request-access";
 import { BranchSignOut } from "@/components/branch/branch-sign-out";
+import { BranchWithdrawalForm, type ItemOption } from "@/components/branch/branch-withdrawal-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -62,12 +64,28 @@ export default async function BranchPage({
       </>
     );
   } else if (member && hasAccess(member)) {
+    // Items come from the server, filtered to THIS branch only.
+    const service = createServiceClient();
+    const { data: itemRows } = await service
+      .from("items")
+      .select("id, name, category, current_stock, minimum_threshold")
+      .eq("branch", branch)
+      .eq("is_active", true)
+      .order("name");
+
     content = (
-      <Notice title={`Welcome, ${member.full_name}`} description={`${member.department} · ${label}`}>
-        <p className="text-sm text-muted-foreground">
-          You&apos;re signed in. The request form will appear here in the next step.
-        </p>
-      </Notice>
+      <>
+        <BranchWithdrawalForm
+          branch={branch}
+          branchLabel={label}
+          staffName={member.full_name}
+          department={member.department}
+          initialItems={(itemRows ?? []) as ItemOption[]}
+        />
+        <div className="flex justify-center">
+          <BranchSignOut />
+        </div>
+      </>
     );
   } else if (member?.status === "pending") {
     content = (
@@ -102,7 +120,7 @@ export default async function BranchPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-4 py-10">
+    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-4 py-10">
       <h1 className="text-center text-2xl font-bold text-slate-900">Office Supplies · {label}</h1>
       {content}
     </main>

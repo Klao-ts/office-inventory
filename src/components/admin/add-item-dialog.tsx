@@ -16,19 +16,22 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import type { Item } from "@/lib/supabase/database.types";
 
+const emptyForm = {
+  name: "",
+  category: "",
+  branch: "office",
+  sku: "",
+  unit_price: "",
+  current_stock: "",
+  minimum_threshold: "5",
+};
+
 export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    category: "",
-    sku: "",
-    unit_price: "",
-    current_stock: "",
-    minimum_threshold: "5",
-  });
+  const [form, setForm] = useState(emptyForm);
 
-  const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const update = (key: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
   const handleSubmit = async () => {
@@ -40,6 +43,7 @@ export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }
         body: JSON.stringify({
           name: form.name,
           category: form.category || "General",
+          branch: form.branch,
           sku: form.sku || null,
           unit_price: Number(form.unit_price || 0),
           current_stock: Number(form.current_stock || 0),
@@ -52,7 +56,7 @@ export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }
       toast.success(`${form.name} added to inventory`);
       onCreated(data.item);
       setOpen(false);
-      setForm({ name: "", category: "", sku: "", unit_price: "", current_stock: "", minimum_threshold: "5" });
+      setForm(emptyForm);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -75,6 +79,18 @@ export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }
           <div className="col-span-2 space-y-1.5">
             <Label>Item Name</Label>
             <Input value={form.name} onChange={update("name")} placeholder="e.g. A4 Paper Ream" />
+          </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label htmlFor="item-branch">Branch</Label>
+            <select
+              id="item-branch"
+              value={form.branch}
+              onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="office">Office</option>
+              <option value="factory">Factory</option>
+            </select>
           </div>
           <div className="space-y-1.5">
             <Label>Category</Label>

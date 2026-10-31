@@ -7,12 +7,15 @@ import { formatCurrency } from "@/lib/utils";
 import type { Item } from "@/lib/supabase/database.types";
 import { PackagePlus } from "lucide-react";
 
+const branchLabel = (b: string) => (b === "factory" ? "Factory" : b === "office" ? "Office" : b);
+
 export function InventoryTable({ items, onRestock }: { items: Item[]; onRestock: (item: Item) => void }) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Item</TableHead>
+          <TableHead>Branch</TableHead>
           <TableHead>Category</TableHead>
           <TableHead>SKU</TableHead>
           <TableHead>Unit Price</TableHead>
@@ -27,6 +30,9 @@ export function InventoryTable({ items, onRestock }: { items: Item[]; onRestock:
           return (
             <TableRow key={item.id}>
               <TableCell className="font-medium">{item.name}</TableCell>
+              <TableCell>
+                <Badge variant="secondary">{branchLabel(item.branch)}</Badge>
+              </TableCell>
               <TableCell>{item.category}</TableCell>
               <TableCell className="text-muted-foreground">{item.sku ?? "—"}</TableCell>
               <TableCell>{formatCurrency(item.unit_price)}</TableCell>

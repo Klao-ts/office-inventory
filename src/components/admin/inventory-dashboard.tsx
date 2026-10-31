@@ -18,8 +18,11 @@ type WithdrawalRow = {
   department: string;
   quantity: number;
   requested_at: string;
+  branch?: string | null;
   items: { name: string } | null;
 };
+
+const branchLabel = (b?: string | null) => (b === "factory" ? "Factory" : b === "office" ? "Office" : "—");
 
 export function InventoryDashboard({
   initialItems,
@@ -33,8 +36,21 @@ export function InventoryDashboard({
   const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>(initialWithdrawals);
   const [restockTarget, setRestockTarget] = useState<Item | null>(null);
   const [restockOpen, setRestockOpen] = useState(false);
+  const [branchFilter, setBranchFilter] = useState("all");
 
-  const lowStockCount = items.filter((i) => i.current_stock <= i.minimum_threshold && i.is_active).length;
+  const visibleItems = useMemo(
+    () => items.filter((i) => branchFilter === "all" || i.branch === branchFilter),
+    [items, branchFilter]
+  );
+  const visibleWithdrawals = useMemo(
+    () => withdrawals.filter((w) => branchFilter === "all" || w.branch === branchFilter),
+    [withdrawals, branchFilter]
+  );
+
+  const lowStockCount = visibleItems.filter((i) => i.current_stock <= i.minimum_threshold && i.is_active).length;
+
+  const addItemIfNew = (item: Item) =>
+    setItems((prev) => (prev.some((i) => i.id === item.id) ? prev : [...prev, item]));
 
   // Realtime: reflect withdrawals/restocks made from any device instantly
   useEffect(() => {
@@ -42,24 +58,29 @@ export function InventoryDashboard({
       .channel("admin-dashboard")
       .on("postgres_changes", { event: "*", schema: "public", table: "items" }, (payload) => {
         if (payload.eventType === "INSERT") {
-          setItems((prev) => [...prev, payload.new as Item]);
+          addItemIfNew(payload.new as Item);
         } else if (payload.eventType === "UPDATE") {
           setItems((prev) => prev.map((i) => (i.id === payload.new.id ? (payload.new as Item) : i)));
         }
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "withdrawals" }, async (payload) => {
         const item = items.find((i) => i.id === payload.new.item_id);
-        setWithdrawals((prev) => [
-          {
-            id: payload.new.id,
-            employee_name: payload.new.employee_name,
-            department: payload.new.department,
-            quantity: payload.new.quantity,
-            requested_at: payload.new.requested_at,
-            items: item ? { name: item.name } : null,
-          },
-          ...prev,
-        ]);
+        setWithdrawals((prev) =>
+          prev.some((w) => w.id === payload.new.id)
+            ? prev
+            : [
+                {
+                  id: payload.new.id,
+                  employee_name: payload.new.employee_name,
+                  department: payload.new.department,
+                  quantity: payload.new.quantity,
+                  requested_at: payload.new.requested_at,
+                  branch: payload.new.branch ?? null,
+                  items: item ? { name: item.name } : null,
+                },
+                ...prev,
+              ]
+        );
       })
       .subscribe();
 
@@ -71,7 +92,7 @@ export function InventoryDashboard({
 
   return (
     <div className="space-y-8">
-      <LowStockAlert items={items} />
+      <LowStockAlert items={visibleItems} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
@@ -79,7 +100,7 @@ export function InventoryDashboard({
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Items</CardTitle>
             <Boxes className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{items.length}</CardContent>
+          <CardContent className="text-2xl font-bold">{visibleItems.length}</CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -93,18 +114,29 @@ export function InventoryDashboard({
             <CardTitle className="text-sm font-medium text-muted-foreground">Recent Withdrawals</CardTitle>
             <ClipboardList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-2xl font-bold">{withdrawals.length}</CardContent>
+          <CardContent className="text-2xl font-bold">{visibleWithdrawals.length}</CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Inventory</CardTitle>
-          <AddItemDialog onCreated={(item) => setItems((prev) => [...prev, item])} />
+          <div className="flex items-center gap-3">
+            <select
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="all">All branches</option>
+              <option value="office">Office</option>
+              <option value="factory">Factory</option>
+            </select>
+            <AddItemDialog onCreated={addItemIfNew} />
+          </div>
         </CardHeader>
         <CardContent>
           <InventoryTable
-            items={items}
+            items={visibleItems}
             onRestock={(item) => {
               setRestockTarget(item);
               setRestockOpen(true);
@@ -123,16 +155,18 @@ export function InventoryDashboard({
               <TableRow>
                 <TableHead>Employee</TableHead>
                 <TableHead>Department</TableHead>
+                <TableHead>Branch</TableHead>
                 <TableHead>Item</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {withdrawals.map((w) => (
+              {visibleWithdrawals.map((w) => (
                 <TableRow key={w.id}>
                   <TableCell>{w.employee_name}</TableCell>
                   <TableCell>{w.department}</TableCell>
+                  <TableCell>{branchLabel(w.branch)}</TableCell>
                   <TableCell>{w.items?.name ?? "—"}</TableCell>
                   <TableCell>{w.quantity}</TableCell>
                   <TableCell className="text-muted-foreground">{formatDate(w.requested_at)}</TableCell>
