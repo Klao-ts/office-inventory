@@ -3,6 +3,7 @@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EditItemDialog } from "@/components/admin/edit-item-dialog";
 import { formatCurrency } from "@/lib/utils";
 import type { Item } from "@/lib/supabase/database.types";
 import { PackagePlus } from "lucide-react";
@@ -17,7 +18,7 @@ export function InventoryTable({ items, onRestock }: { items: Item[]; onRestock:
           <TableHead>Item</TableHead>
           <TableHead>Branch</TableHead>
           <TableHead>Category</TableHead>
-          <TableHead>SKU</TableHead>
+          <TableHead>Distributor ID</TableHead>
           <TableHead>Unit Price</TableHead>
           <TableHead>Stock</TableHead>
           <TableHead>Status</TableHead>
@@ -34,7 +35,7 @@ export function InventoryTable({ items, onRestock }: { items: Item[]; onRestock:
                 <Badge variant="secondary">{branchLabel(item.branch)}</Badge>
               </TableCell>
               <TableCell>{item.category}</TableCell>
-              <TableCell className="text-muted-foreground">{item.sku ?? "—"}</TableCell>
+              <TableCell className="text-muted-foreground">{item.distributor_item_id ?? "—"}</TableCell>
               <TableCell>{formatCurrency(item.unit_price)}</TableCell>
               <TableCell>{item.current_stock}</TableCell>
               <TableCell>
@@ -45,9 +46,12 @@ export function InventoryTable({ items, onRestock }: { items: Item[]; onRestock:
                 )}
               </TableCell>
               <TableCell className="text-right">
-                <Button size="sm" variant="outline" className="gap-2" onClick={() => onRestock(item)}>
-                  <PackagePlus className="h-4 w-4" /> Restock
-                </Button>
+                <div className="flex justify-end gap-2">
+                  <EditItemDialog item={item} />
+                  <Button size="sm" variant="outline" className="gap-2" onClick={() => onRestock(item)}>
+                    <PackagePlus className="h-4 w-4" /> Restock
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           );

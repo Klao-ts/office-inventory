@@ -20,7 +20,7 @@ const emptyForm = {
   name: "",
   category: "",
   branch: "office",
-  sku: "",
+  distributor_item_id: "",
   unit_price: "",
   current_stock: "",
   minimum_threshold: "5",
@@ -44,7 +44,7 @@ export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }
           name: form.name,
           category: form.category || "General",
           branch: form.branch,
-          sku: form.sku || null,
+          distributor_item_id: form.distributor_item_id.trim() || null,
           unit_price: Number(form.unit_price || 0),
           current_stock: Number(form.current_stock || 0),
           minimum_threshold: Number(form.minimum_threshold || 5),
@@ -97,9 +97,16 @@ export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }
             <Input value={form.category} onChange={update("category")} placeholder="e.g. Paper" />
           </div>
           <div className="space-y-1.5">
-            <Label>SKU</Label>
-            <Input value={form.sku} onChange={update("sku")} placeholder="e.g. PAP-A4-002" />
+            <Label>Distributor Item ID</Label>
+            <Input
+              value={form.distributor_item_id}
+              onChange={update("distributor_item_id")}
+              placeholder="Code from the seller"
+            />
           </div>
+          <p className="col-span-2 -mt-2 text-xs text-muted-foreground">
+            The same product in Office and Factory can use the same ID.
+          </p>
           <div className="space-y-1.5">
             <Label>Unit Price</Label>
             <Input type="number" step="0.01" min={0} value={form.unit_price} onChange={update("unit_price")} />

@@ -15,7 +15,7 @@ const createSchema = z.object({
   name: z.string().min(2),
   category: z.string().min(1),
   branch: z.enum(["office", "factory"]).default("office"),
-  sku: z.string().optional().nullable(),
+  sku: z.string().optional().nullable(), distributor_item_id: z.string().trim().optional().nullable(),
   unit_price: z.coerce.number().min(0).default(0),
   current_stock: z.coerce.number().int().min(0).default(0),
   minimum_threshold: z.coerce.number().int().min(0).default(5),

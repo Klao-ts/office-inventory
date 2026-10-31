@@ -13,7 +13,7 @@ export interface Database {
           id: string;
           name: string;
           category: string;
-          sku: string | null;
+          sku: string | null; distributor_item_id: string | null;
           unit_price: number;
           current_stock: number;
           minimum_threshold: number;
@@ -26,7 +26,7 @@ export interface Database {
           id?: string;
           name: string;
           category?: string;
-          sku?: string | null;
+          sku?: string | null; distributor_item_id?: string | null;
           unit_price?: number;
           current_stock?: number;
           minimum_threshold?: number;
