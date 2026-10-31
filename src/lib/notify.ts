@@ -152,3 +152,63 @@ export async function checkAndNotifyLowStock(withdrawn: { item_id: string; quant
 
   await notifyLowStock(crossed);
 }
+
+export type OrderRequestEmail = {
+  staffName: string;
+  department: string;
+  branch: string;
+  cutoffLabel: string;
+  lines: { name: string; quantity: number; note: string | null }[];
+};
+
+/** Tells the admin(s) about a new order request. One email per request, however many items it has. */
+export async function notifyPurchaseRequest(req: OrderRequestEmail) {
+  const recipients = await getRecipients("purchase_request");
+
+  // Same person may be listed for several branches; they still get one email.
+  const scopes = new Map<string, Array<string | null>>();
+  for (const r of recipients) {
+    scopes.set(r.email, [...(scopes.get(r.email) ?? []), r.branch]);
+  }
+
+  const branchLabel = BRANCH_LABELS[req.branch] ?? req.branch;
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+
+  const rows = req.lines
+    .map(
+      (l) =>
+        `<tr>
+          <td style="padding:6px 12px;border-bottom:1px solid #eee">${escapeHtml(l.name)}</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #eee"><b>${l.quantity}</b></td>
+          <td style="padding:6px 12px;border-bottom:1px solid #eee">${l.note ? escapeHtml(l.note) : ""}</td>
+        </tr>`
+    )
+    .join("");
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;font-size:14px;color:#111">
+      <p><b>${escapeHtml(req.staffName)}</b> (${escapeHtml(req.department)}, ${escapeHtml(branchLabel)})
+         sent an order request. It counts toward the ${escapeHtml(req.cutoffLabel)} cut-off.</p>
+      <table style="border-collapse:collapse">
+        <thead>
+          <tr style="text-align:left;background:#f5f5f5">
+            <th style="padding:6px 12px">Item</th>
+            <th style="padding:6px 12px">Qty</th>
+            <th style="padding:6px 12px">Note</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${appUrl ? `<p><a href="${appUrl}/admin/orders">Open Order Requests</a></p>` : ""}
+      <p style="color:#666">Sent automatically by the Office Supplies Inventory system.</p>
+    </div>`;
+
+  const subject = `Order request: ${req.staffName} (${branchLabel}), ${req.lines.length} item${
+    req.lines.length === 1 ? "" : "s"
+  }`;
+
+  for (const [email, branches] of scopes) {
+    if (!branches.includes(null) && !branches.includes(req.branch)) continue;
+    await sendEmail(email, subject, html);
+  }
+}

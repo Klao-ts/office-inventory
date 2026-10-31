@@ -16,6 +16,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .select("id", { count: "exact", head: true })
     .eq("status", "pending");
 
+  const { count: pendingOrders } = await service
+    .from("purchase_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b bg-white">
@@ -28,6 +33,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <nav className="flex items-center gap-4 text-sm text-slate-600">
               <Link href="/admin" className="hover:text-slate-900">
                 Dashboard
+              </Link>
+              <Link href="/admin/orders" className="flex items-center hover:text-slate-900">
+                Order Requests
+                {pendingOrders ? (
+                  <span className="ml-1.5 rounded-full bg-amber-500 px-1.5 text-xs font-semibold text-white">
+                    {pendingOrders}
+                  </span>
+                ) : null}
               </Link>
               <Link href="/admin/staff" className="flex items-center hover:text-slate-900">
                 Staff

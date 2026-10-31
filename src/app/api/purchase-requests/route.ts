@@ -5,6 +5,7 @@ import { isBranch } from "@/lib/branches";
 import { getCurrentStaff, hasAccess } from "@/lib/staff-auth";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getNextCutoff } from "@/lib/pr-cutoff";
+import { notifyPurchaseRequest } from "@/lib/notify";
 
 const lineSchema = z.object({
   item_id: z.string().uuid().nullable().optional(),
@@ -92,6 +93,57 @@ export async function POST(request: Request) {
   if (insertError) {
     console.error("Order request insert failed:", insertError.message);
     return NextResponse.json({ error: "Could not save your request. Please try again." }, { status: 500 });
+  }
+
+  // The request is already saved. If the email fails, the staff member still sees success.
+  try {
+    await notifyPurchaseRequest({
+      staffName: member.full_name,
+      department: member.department,
+      branch,
+      cutoffLabel: cutoff.label,
+      lines: rows.map((r) => ({
+        name: String(r.item_name),
+        quantity: Number(r.quantity),
+        note: r.note ? String(r.note) : null,
+      })),
+    });
+  } catch (err) {
+    console.error("Order request email failed:", err);
+  }
+
+  // The request is already saved. If the email fails, the staff member still sees success.
+  try {
+    await notifyPurchaseRequest({
+      staffName: member.full_name,
+      department: member.department,
+      branch,
+      cutoffLabel: cutoff.label,
+      lines: rows.map((r) => ({
+        name: String(r.item_name),
+        quantity: Number(r.quantity),
+        note: r.note ? String(r.note) : null,
+      })),
+    });
+  } catch (err) {
+    console.error("Order request email failed:", err);
+  }
+
+  // The request is already saved. If the email fails, the staff member still sees success.
+  try {
+    await notifyPurchaseRequest({
+      staffName: member.full_name,
+      department: member.department,
+      branch,
+      cutoffLabel: cutoff.label,
+      lines: rows.map((r) => ({
+        name: String(r.item_name),
+        quantity: Number(r.quantity),
+        note: r.note ? String(r.note) : null,
+      })),
+    });
+  } catch (err) {
+    console.error("Order request email failed:", err);
   }
 
   return NextResponse.json({ ok: true, count: rows.length, cutoff: cutoff.label }, { status: 201 });
