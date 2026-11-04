@@ -15,6 +15,8 @@ export type OrderItem = {
   category: string;
   current_stock: number;
   minimum_threshold: number;
+  unit: string;
+  max_request_qty: number | null;
 };
 
 type Line = {
@@ -91,7 +93,7 @@ function ItemPicker({
                 >
                   <span className="truncate">{item.name}</span>
                   <span className="flex shrink-0 items-center gap-2">
-                    <span className="text-xs tabular-nums text-muted-foreground">{item.current_stock} left</span>
+                    <span className="text-xs tabular-nums text-muted-foreground">{item.current_stock} {item.unit} left</span>
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>
                       {badge.text}
                     </span>
@@ -149,6 +151,16 @@ export function OrderRequestForm({
         if (!l.itemId) {
           toast.error(`Item ${i + 1}: please choose an item`);
           return;
+        }
+        const picked = items.find((it) => it.id === l.itemId);
+        if (picked?.max_request_qty) {
+          const totalForItem = lines
+            .filter((x) => !x.custom && x.itemId === l.itemId)
+            .reduce((sum, x) => sum + (Number(x.quantity) || 0), 0);
+          if (totalForItem > picked.max_request_qty) {
+            toast.error(`${picked.name}: max ${picked.max_request_qty} ${picked.unit} per request`);
+            return;
+          }
         }
         payloadLines.push({ item_id: l.itemId, quantity: qty, note: l.note.trim() });
       }
@@ -238,6 +250,15 @@ export function OrderRequestForm({
             >
               {line.custom ? "Choose from the list instead" : "Item not in the list?"}
             </button>
+
+            {(() => {
+              const picked = line.custom ? null : items.find((it) => it.id === line.itemId);
+              return picked?.max_request_qty ? (
+                <p className="text-xs text-muted-foreground">
+                  Max {picked.max_request_qty} {picked.unit} per request
+                </p>
+              ) : null;
+            })()}
 
             <div className="flex items-center gap-2">
               <Label htmlFor={`oq-${line.key}`} className="text-xs text-muted-foreground">

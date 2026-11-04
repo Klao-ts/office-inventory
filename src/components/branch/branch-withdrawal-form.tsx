@@ -22,6 +22,8 @@ export type ItemOption = {
   category: string;
   current_stock: number;
   minimum_threshold: number;
+  unit: string;
+  max_withdraw_qty: number | null;
 };
 
 const REASON_OPTIONS: { value: string; label: string }[] = [
@@ -99,8 +101,17 @@ export function BranchWithdrawalForm({
     for (const row of values.items) {
       const item = items.find((i) => i.id === row.item_id);
       if (item && row.quantity > item.current_stock) {
-        toast.error(`${item.name}: only ${item.current_stock} left in stock`);
+        toast.error(`${item.name}: only ${item.current_stock} {item.unit} left in stock`);
         return;
+      }
+      if (item?.max_withdraw_qty) {
+        const totalForItem = values.items
+          .filter((r) => r.item_id === row.item_id)
+          .reduce((sum, r) => sum + r.quantity, 0);
+        if (totalForItem > item.max_withdraw_qty) {
+          toast.error(`${item.name}: max ${item.max_withdraw_qty} ${item.unit} per withdrawal`);
+          return;
+        }
       }
       if (!row.reason_category) {
         toast.error(`${item?.name ?? "One of your items"}: please select a reason`);
@@ -208,11 +219,20 @@ export function BranchWithdrawalForm({
                           id={`qty-${index}`}
                           type="number"
                           min={1}
-                          max={selectedItem?.current_stock ?? undefined}
+                          max={
+                            selectedItem
+                              ? Math.min(selectedItem.current_stock, selectedItem.max_withdraw_qty ?? selectedItem.current_stock)
+                              : undefined
+                          }
                           className="h-8 w-24"
                           {...register(`items.${index}.quantity`)}
                         />
                       </div>
+                      {selectedItem?.max_withdraw_qty ? (
+                        <p className="text-xs text-muted-foreground">
+                          Max {selectedItem.max_withdraw_qty} {selectedItem.unit} per withdrawal
+                        </p>
+                      ) : null}
                       {selectedItem && selectedItem.current_stock <= selectedItem.minimum_threshold && (
                         <p className="text-xs text-amber-600">
                           Low stock: only {selectedItem.current_stock} remaining

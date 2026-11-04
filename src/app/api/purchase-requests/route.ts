@@ -42,17 +42,33 @@ export async function POST(request: Request) {
   // Look up chosen items on the server: they must belong to this branch and be active.
   const ids = Array.from(new Set(lines.map((l) => l.item_id).filter((v): v is string => !!v)));
   const names = new Map<string, string>();
+const limits = new Map<string, { max: number | null; unit: string; name: string }>();
   if (ids.length > 0) {
     const { data, error } = await service
       .from("items")
-      .select("id, name")
+      .select("id, name, unit, max_request_qty")
       .in("id", ids)
       .eq("branch", branch)
       .eq("is_active", true);
     if (error) {
       return NextResponse.json({ error: "Could not check the items. Please try again." }, { status: 500 });
     }
-    for (const row of data ?? []) names.set(row.id, row.name);
+    for (const row of data ?? []) {
+      names.set(row.id, row.name);
+      limits.set(row.id, { max: row.max_request_qty ?? null, unit: row.unit ?? "pcs", name: row.name });
+    }
+  }
+
+  // Per-item limit: counted across the whole request.
+  const requested = new Map<string, number>();
+  for (const line of lines) {
+    if (line.item_id) requested.set(line.item_id, (requested.get(line.item_id) ?? 0) + line.quantity);
+  }
+  for (const [id, total] of requested) {
+    const lim = limits.get(id);
+    if (lim?.max && total > lim.max) {
+      return NextResponse.json({ error: `${lim.name}: max ${lim.max} ${lim.unit} per request` }, { status: 400 });
+    }
   }
 
   const groupId = randomUUID();

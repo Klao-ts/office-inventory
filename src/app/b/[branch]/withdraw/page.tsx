@@ -17,7 +17,7 @@ export default async function WithdrawPage({ params }: { params: { branch: strin
   const service = createServiceClient();
   const { data: itemRows } = await service
     .from("items")
-    .select("id, name, category, current_stock, minimum_threshold")
+    .select("id, name, category, current_stock, minimum_threshold, unit, max_withdraw_qty")
     .eq("branch", branch)
     .eq("is_active", true)
     .order("name");

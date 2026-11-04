@@ -94,6 +94,36 @@ export async function POST(request: Request) {
     for (const it of items ?? []) activeItems.add(it.id as string);
   }
 
+  // Per-item limit: counted across the whole resubmission.
+  {
+    const wantedById = new Map<string, number>();
+    for (const l of lines) {
+      const orig = originals.find((o) => o.id === l.id);
+      if (orig?.item_id && activeItems.has(orig.item_id)) {
+        wantedById.set(orig.item_id, (wantedById.get(orig.item_id) ?? 0) + l.quantity);
+      }
+    }
+    if (wantedById.size > 0) {
+      const { data: limited, error: limitError } = await service
+        .from("items")
+        .select("id, name, unit, max_request_qty")
+        .in("id", Array.from(wantedById.keys()))
+        .not("max_request_qty", "is", null);
+      if (limitError) {
+        return NextResponse.json({ error: "Could not check item limits. Please try again." }, { status: 500 });
+      }
+      for (const it of limited ?? []) {
+        const total = wantedById.get(it.id as string) ?? 0;
+        if (total > (it.max_request_qty as number)) {
+          return NextResponse.json(
+            { error: `${it.name}: max ${it.max_request_qty} ${it.unit} per request` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+  }
+
   const byId = new Map(originals.map((o) => [o.id, o]));
   const groupId = randomUUID();
   const cutoff = getNextCutoff();

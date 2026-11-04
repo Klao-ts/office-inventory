@@ -20,7 +20,7 @@ export default async function OrderRequestPage({ params }: { params: { branch: s
   const service = createServiceClient();
   const { data: itemRows } = await service
     .from("items")
-    .select("id, name, category, current_stock, minimum_threshold")
+    .select("id, name, category, current_stock, minimum_threshold, unit, max_request_qty")
     .eq("branch", branch)
     .eq("is_active", true)
     .order("name");

@@ -24,7 +24,7 @@ const selectClass = "h-10 rounded-md border border-input bg-background px-3 text
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: { branch?: string; cutoff?: string };
+  searchParams: { branch?: string; cutoff?: string; seller?: string };
 }) {
   const service = createServiceClient();
 
@@ -38,6 +38,15 @@ export default async function OrdersPage({
   const requested = searchParams.cutoff;
   const cutoff = requested && cutoffs.includes(requested) ? requested : pendingCutoffs[0] ?? cutoffs[0] ?? "";
   const branch = searchParams.branch && isBranch(searchParams.branch) ? searchParams.branch : "all";
+
+  const { data: sellerRows } = await service.from("items").select("seller").not("seller", "is", null);
+  const sellers = Array.from(
+    new Set((sellerRows ?? []).map((s) => String(s.seller).trim()).filter((s) => s.length > 0))
+  ).sort((a, b) => a.localeCompare(b));
+  const seller =
+    searchParams.seller === "__none__" || (searchParams.seller && sellers.includes(searchParams.seller))
+      ? (searchParams.seller as string)
+      : "all";
 
   let rows: RequestRow[] = [];
   if (cutoff) {
@@ -73,7 +82,7 @@ export default async function OrdersPage({
     });
   }
 
-  const exportBase = `/api/purchase-requests/export?cutoff=${cutoff}&branch=${branch}`;
+  const exportBase = `/api/purchase-requests/export?cutoff=${cutoff}&branch=${branch}&seller=${encodeURIComponent(seller)}`;
   const linkClass =
     "inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium hover:bg-slate-50";
 
@@ -126,7 +135,21 @@ export default async function OrdersPage({
             >
               Show
             </button>
-            <div className="ml-auto flex flex-wrap gap-2">
+            <div className="ml-auto flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <label htmlFor="seller" className="text-xs text-muted-foreground">
+                  Seller for download (click Show to apply)
+                </label>
+                <select id="seller" name="seller" defaultValue={seller} className={`${selectClass} block`}>
+                  <option value="all">All sellers</option>
+                  {sellers.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                  <option value="__none__">No seller / typed items</option>
+                </select>
+              </div>
               <a href={`${exportBase}&status=approved`} className={linkClass}>
                 Download approved (CSV)
               </a>
