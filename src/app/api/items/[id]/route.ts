@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { optionalLimit } from "@/lib/item-limits";
 
 const updateSchema = z.object({
   name: z.string().min(2),
   category: z.string().min(1),
   distributor_item_id: z.string().optional().nullable(),
+  seller: z.string().trim().max(100).optional().nullable(),
+  unit: z.string().trim().min(1, "Unit can't be empty").max(20),
   unit_price: z.coerce.number().min(0),
   minimum_threshold: z.coerce.number().int().min(0),
+  max_withdraw_qty: optionalLimit,
+  max_request_qty: optionalLimit,
 });
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
@@ -30,6 +35,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const changes = {
     ...parsed.data,
     distributor_item_id: parsed.data.distributor_item_id?.trim() || null,
+    seller: parsed.data.seller?.trim() || null,
   };
 
   // @ts-ignore: supabase-js update() overload quirk; the payload is already validated by zod above

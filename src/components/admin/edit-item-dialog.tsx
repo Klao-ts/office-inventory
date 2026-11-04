@@ -16,15 +16,21 @@ import { Label } from "@/components/ui/label";
 import { Pencil } from "lucide-react";
 import type { Item } from "@/lib/supabase/database.types";
 
+const UNIT_SUGGESTIONS = ["pcs", "ream", "box", "pack", "set", "roll", "bottle", "pair", "unit"];
+
 const fromItem = (item: Item) => ({
   name: item.name,
   category: item.category,
   distributor_item_id: item.distributor_item_id ?? "",
+  seller: item.seller ?? "",
+  unit: item.unit || "pcs",
   unit_price: String(item.unit_price),
   minimum_threshold: String(item.minimum_threshold),
+  max_withdraw_qty: item.max_withdraw_qty ? String(item.max_withdraw_qty) : "",
+  max_request_qty: item.max_request_qty ? String(item.max_request_qty) : "",
 });
 
-export function EditItemDialog({ item }: { item: Item }) {
+export function EditItemDialog({ item, sellerOptions = [] }: { item: Item; sellerOptions?: string[] }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(fromItem(item));
@@ -47,8 +53,12 @@ export function EditItemDialog({ item }: { item: Item }) {
           name: form.name,
           category: form.category || "General",
           distributor_item_id: form.distributor_item_id.trim() || null,
+          seller: form.seller.trim() || null,
+          unit: form.unit.trim() || "pcs",
           unit_price: Number(form.unit_price || 0),
           minimum_threshold: Number(form.minimum_threshold || 5),
+          max_withdraw_qty: form.max_withdraw_qty.trim() ? Number(form.max_withdraw_qty) : null,
+          max_request_qty: form.max_request_qty.trim() ? Number(form.max_request_qty) : null,
         }),
       });
       const data = await res.json();
@@ -72,7 +82,7 @@ export function EditItemDialog({ item }: { item: Item }) {
           <Pencil className="h-4 w-4" /> Edit
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Item</DialogTitle>
         </DialogHeader>
@@ -86,12 +96,35 @@ export function EditItemDialog({ item }: { item: Item }) {
             <Input value={form.category} onChange={update("category")} />
           </div>
           <div className="space-y-1.5">
-            <Label>Distributor Item ID</Label>
+            <Label>Item ID</Label>
             <Input
               value={form.distributor_item_id}
               onChange={update("distributor_item_id")}
-              placeholder="Code from the seller"
+              placeholder="Product code from the seller"
             />
+          </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label>Seller / Distributor</Label>
+            <Input
+              list="edit-seller-options"
+              value={form.seller}
+              onChange={update("seller")}
+              placeholder="Company name or distributor ID"
+            />
+            <datalist id="edit-seller-options">
+              {sellerOptions.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Unit</Label>
+            <Input list="edit-unit-options" value={form.unit} onChange={update("unit")} placeholder="e.g. ream" />
+            <datalist id="edit-unit-options">
+              {UNIT_SUGGESTIONS.map((u) => (
+                <option key={u} value={u} />
+              ))}
+            </datalist>
           </div>
           <div className="space-y-1.5">
             <Label>Unit Price</Label>
@@ -101,8 +134,28 @@ export function EditItemDialog({ item }: { item: Item }) {
             <Label>Minimum Threshold</Label>
             <Input type="number" min={0} value={form.minimum_threshold} onChange={update("minimum_threshold")} />
           </div>
+          <div className="space-y-1.5">
+            <Label>Max per withdrawal</Label>
+            <Input
+              type="number"
+              min={1}
+              value={form.max_withdraw_qty}
+              onChange={update("max_withdraw_qty")}
+              placeholder="No limit"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Max per order request</Label>
+            <Input
+              type="number"
+              min={1}
+              value={form.max_request_qty}
+              onChange={update("max_request_qty")}
+              placeholder="No limit"
+            />
+          </div>
           <p className="col-span-2 text-xs text-muted-foreground">
-            Stock and branch can&apos;t be changed here. Use Restock to add stock.
+            Leave a limit blank for no limit. Stock and branch can&apos;t be changed here. Use Restock to add stock.
           </p>
         </div>
         <DialogFooter>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { optionalLimit } from "@/lib/item-limits";
 import type { Database } from "@/lib/supabase/database.types";
 
 export async function GET() {
@@ -18,6 +19,10 @@ const createSchema = z.object({
   sku: z.string().optional().nullable(), distributor_item_id: z.string().trim().optional().nullable(),
   unit_price: z.coerce.number().min(0).default(0),
   current_stock: z.coerce.number().int().min(0).default(0),
+  seller: z.string().trim().max(100).optional().nullable(),
+  unit: z.string().trim().min(1).max(20).default("pcs"),
+  max_withdraw_qty: optionalLimit,
+  max_request_qty: optionalLimit,
   minimum_threshold: z.coerce.number().int().min(0).default(5),
 });
 
@@ -41,6 +46,7 @@ export async function POST(request: Request) {
   const insertPayload: Database["public"]["Tables"]["items"]["Insert"] = {
     ...parsed.data,
     sku: parsed.data.sku ?? null,
+    seller: parsed.data.seller?.trim() || null,
   };
 
   // @ts-ignore — supabase-js insert() overload resolution quirk; payload is already validated by zod above

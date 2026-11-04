@@ -14,6 +14,10 @@ export interface Database {
           name: string;
           category: string;
           sku: string | null; distributor_item_id: string | null;
+          seller: string | null;
+          unit: string;
+          max_withdraw_qty: number | null;
+          max_request_qty: number | null;
           unit_price: number;
           current_stock: number;
           minimum_threshold: number;
@@ -27,6 +31,10 @@ export interface Database {
           name: string;
           category?: string;
           sku?: string | null; distributor_item_id?: string | null;
+          seller?: string | null;
+          unit?: string;
+          max_withdraw_qty?: number | null;
+          max_request_qty?: number | null;
           unit_price?: number;
           current_stock?: number;
           minimum_threshold?: number;

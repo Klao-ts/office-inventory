@@ -16,17 +16,29 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import type { Item } from "@/lib/supabase/database.types";
 
+const UNIT_SUGGESTIONS = ["pcs", "ream", "box", "pack", "set", "roll", "bottle", "pair", "unit"];
+
 const emptyForm = {
   name: "",
   category: "",
   branch: "office",
   distributor_item_id: "",
+  seller: "",
+  unit: "pcs",
   unit_price: "",
   current_stock: "",
   minimum_threshold: "5",
+  max_withdraw_qty: "",
+  max_request_qty: "",
 };
 
-export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }) {
+export function AddItemDialog({
+  onCreated,
+  sellerOptions = [],
+}: {
+  onCreated: (item: Item) => void;
+  sellerOptions?: string[];
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -45,9 +57,13 @@ export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }
           category: form.category || "General",
           branch: form.branch,
           distributor_item_id: form.distributor_item_id.trim() || null,
+          seller: form.seller.trim() || null,
+          unit: form.unit.trim() || "pcs",
           unit_price: Number(form.unit_price || 0),
           current_stock: Number(form.current_stock || 0),
           minimum_threshold: Number(form.minimum_threshold || 5),
+          max_withdraw_qty: form.max_withdraw_qty.trim() ? Number(form.max_withdraw_qty) : null,
+          max_request_qty: form.max_request_qty.trim() ? Number(form.max_request_qty) : null,
         }),
       });
       const data = await res.json();
@@ -71,7 +87,7 @@ export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }
           <Plus className="h-4 w-4" /> Add Item
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Item</DialogTitle>
         </DialogHeader>
@@ -97,16 +113,39 @@ export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }
             <Input value={form.category} onChange={update("category")} placeholder="e.g. Paper" />
           </div>
           <div className="space-y-1.5">
-            <Label>Distributor Item ID</Label>
+            <Label>Item ID</Label>
             <Input
               value={form.distributor_item_id}
               onChange={update("distributor_item_id")}
-              placeholder="Code from the seller"
+              placeholder="Product code from the seller"
             />
           </div>
           <p className="col-span-2 -mt-2 text-xs text-muted-foreground">
-            The same product in Office and Factory can use the same ID.
+            The same product in Office and Factory can use the same Item ID.
           </p>
+          <div className="col-span-2 space-y-1.5">
+            <Label>Seller / Distributor</Label>
+            <Input
+              list="add-seller-options"
+              value={form.seller}
+              onChange={update("seller")}
+              placeholder="Company name or distributor ID"
+            />
+            <datalist id="add-seller-options">
+              {sellerOptions.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Unit</Label>
+            <Input list="add-unit-options" value={form.unit} onChange={update("unit")} placeholder="e.g. ream" />
+            <datalist id="add-unit-options">
+              {UNIT_SUGGESTIONS.map((u) => (
+                <option key={u} value={u} />
+              ))}
+            </datalist>
+          </div>
           <div className="space-y-1.5">
             <Label>Unit Price</Label>
             <Input type="number" step="0.01" min={0} value={form.unit_price} onChange={update("unit_price")} />
@@ -115,9 +154,29 @@ export function AddItemDialog({ onCreated }: { onCreated: (item: Item) => void }
             <Label>Initial Stock</Label>
             <Input type="number" min={0} value={form.current_stock} onChange={update("current_stock")} />
           </div>
-          <div className="col-span-2 space-y-1.5">
+          <div className="space-y-1.5">
             <Label>Minimum Threshold</Label>
             <Input type="number" min={0} value={form.minimum_threshold} onChange={update("minimum_threshold")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Max per withdrawal</Label>
+            <Input
+              type="number"
+              min={1}
+              value={form.max_withdraw_qty}
+              onChange={update("max_withdraw_qty")}
+              placeholder="No limit"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Max per order request</Label>
+            <Input
+              type="number"
+              min={1}
+              value={form.max_request_qty}
+              onChange={update("max_request_qty")}
+              placeholder="No limit"
+            />
           </div>
         </div>
         <DialogFooter>
