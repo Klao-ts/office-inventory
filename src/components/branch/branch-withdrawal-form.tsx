@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 
 import type { Branch } from "@/lib/branches";
+import { formatBaht } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,16 @@ export type ItemOption = {
   minimum_threshold: number;
   unit: string;
   max_withdraw_qty: number | null;
+  unit_price: number;
+};
+
+type CostLine = {
+  item_id: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  unit_cost: number | null;
+  total_cost: number | null;
 };
 
 const REASON_OPTIONS: { value: string; label: string }[] = [
@@ -58,6 +69,46 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const toNumber = (v: number | string | null | undefined) => (v === null || v === undefined ? null : Number(v));
+
+function CostSummary({ heading, lines }: { heading: string; lines: CostLine[] }) {
+  const total = Math.round(lines.reduce((sum, l) => sum + (l.total_cost ?? 0), 0) * 100) / 100;
+  const missing = lines.some((l) => l.total_cost === null);
+
+  return (
+    <div className="w-full rounded-md border bg-slate-50 p-3 text-left text-sm">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{heading}</p>
+      <ul className="space-y-1.5">
+        {lines.map((l, i) => (
+          <li key={`${l.item_id}-${i}`} className="flex items-start justify-between gap-3">
+            <span className="min-w-0">
+              <span className="font-medium text-slate-900">{l.name}</span>
+              <span className="block text-xs text-muted-foreground">
+                {l.quantity} {l.unit}
+                {l.unit_cost !== null ? ` × ${formatBaht(l.unit_cost)}` : ""}
+              </span>
+            </span>
+            <span className="shrink-0 tabular-nums text-slate-900">
+              {l.total_cost !== null ? (
+                formatBaht(l.total_cost)
+              ) : (
+                <span className="text-xs text-muted-foreground">cost not set</span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 flex justify-between border-t pt-2 font-semibold text-slate-900">
+        <span>Grand total</span>
+        <span className="tabular-nums">{formatBaht(total)}</span>
+      </div>
+      {missing ? (
+        <p className="mt-1 text-xs text-muted-foreground">Items with no cost set are not included in the total.</p>
+      ) : null}
+    </div>
+  );
+}
+
 export function BranchWithdrawalForm({
   branch,
   branchLabel,
@@ -75,6 +126,7 @@ export function BranchWithdrawalForm({
   const [items, setItems] = useState<ItemOption[]>(initialItems);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [receipt, setReceipt] = useState<CostLine[]>([]);
 
   // Pick up fresh stock numbers whenever the server sends them again.
   useEffect(() => {
@@ -97,11 +149,30 @@ export function BranchWithdrawalForm({
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
   const watchedItems = watch("items");
 
+  // Estimated cost, shown before submitting. The saved cost comes from the server.
+  const estimate: CostLine[] = (watchedItems ?? []).flatMap((row): CostLine[] => {
+    const item = items.find((i) => i.id === row?.item_id);
+    const qty = Number(row?.quantity);
+    if (!item || !Number.isInteger(qty) || qty < 1) return [];
+    const price = Number(item.unit_price);
+    const cost = price > 0 ? price : null;
+    return [
+      {
+        item_id: item.id,
+        name: item.name,
+        unit: item.unit,
+        quantity: qty,
+        unit_cost: cost,
+        total_cost: cost === null ? null : Math.round(cost * qty * 100) / 100,
+      },
+    ];
+  });
+
   const onSubmit = async (values: FormValues) => {
     for (const row of values.items) {
       const item = items.find((i) => i.id === row.item_id);
       if (item && row.quantity > item.current_stock) {
-        toast.error(`${item.name}: only ${item.current_stock} {item.unit} left in stock`);
+        toast.error(`${item.name}: only ${item.current_stock} ${item.unit} left in stock`);
         return;
       }
       if (item?.max_withdraw_qty) {
@@ -128,6 +199,26 @@ export function BranchWithdrawalForm({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to submit request");
+
+      const returned = (data.withdrawals ?? []) as {
+        item_id: string;
+        quantity: number | string;
+        unit_cost: number | string | null;
+        total_cost: number | string | null;
+      }[];
+      setReceipt(
+        returned.map((w) => {
+          const item = items.find((i) => i.id === w.item_id);
+          return {
+            item_id: w.item_id,
+            name: item?.name ?? "Item",
+            unit: item?.unit ?? "",
+            quantity: Number(w.quantity),
+            unit_cost: toNumber(w.unit_cost),
+            total_cost: toNumber(w.total_cost),
+          };
+        })
+      );
 
       toast.success("Request submitted: items withdrawn from stock.");
       setSubmitted(true);
@@ -166,9 +257,11 @@ export function BranchWithdrawalForm({
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <p className="text-lg font-medium text-slate-900">Request submitted!</p>
             <p className="text-sm text-muted-foreground">Your items have been deducted from inventory.</p>
+            {receipt.length > 0 ? <CostSummary heading="Cost" lines={receipt} /> : null}
             <Button
               onClick={() => {
                 setSubmitted(false);
+                setReceipt([]);
                 router.refresh();
               }}
             >
@@ -200,7 +293,7 @@ export function BranchWithdrawalForm({
                               <div className="flex w-full items-center justify-between gap-2">
                                 <span>{item.name}</span>
                                 <Badge variant={item.current_stock <= item.minimum_threshold ? "warning" : "secondary"}>
-                                  {item.current_stock} left
+                                  {item.current_stock} {item.unit} left
                                 </Badge>
                               </div>
                             </SelectItem>
@@ -221,12 +314,18 @@ export function BranchWithdrawalForm({
                           min={1}
                           max={
                             selectedItem
-                              ? Math.min(selectedItem.current_stock, selectedItem.max_withdraw_qty ?? selectedItem.current_stock)
+                              ? Math.min(
+                                  selectedItem.current_stock,
+                                  selectedItem.max_withdraw_qty ?? selectedItem.current_stock
+                                )
                               : undefined
                           }
                           className="h-8 w-24"
                           {...register(`items.${index}.quantity`)}
                         />
+                        {selectedItem ? (
+                          <span className="text-xs text-muted-foreground">{selectedItem.unit}</span>
+                        ) : null}
                       </div>
                       {selectedItem?.max_withdraw_qty ? (
                         <p className="text-xs text-muted-foreground">
@@ -235,7 +334,7 @@ export function BranchWithdrawalForm({
                       ) : null}
                       {selectedItem && selectedItem.current_stock <= selectedItem.minimum_threshold && (
                         <p className="text-xs text-amber-600">
-                          Low stock: only {selectedItem.current_stock} remaining
+                          Low stock: only {selectedItem.current_stock} {selectedItem.unit} remaining
                         </p>
                       )}
 
@@ -310,6 +409,8 @@ export function BranchWithdrawalForm({
                 <Plus className="h-4 w-4" /> Add another item
               </Button>
             </div>
+
+            {estimate.length > 0 ? <CostSummary heading="Estimated cost" lines={estimate} /> : null}
 
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? "Submitting..." : "Submit Request"}

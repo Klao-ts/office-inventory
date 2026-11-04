@@ -147,7 +147,7 @@ export function AddItemDialog({
             </datalist>
           </div>
           <div className="space-y-1.5">
-            <Label>Unit Price</Label>
+            <Label>Cost per unit, THB (average)</Label>
             <Input type="number" step="0.01" min={0} value={form.unit_price} onChange={update("unit_price")} />
           </div>
           <div className="space-y-1.5">

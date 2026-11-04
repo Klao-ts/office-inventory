@@ -3,6 +3,7 @@ import { isBranch } from "@/lib/branches";
 import { getCurrentStaff, hasAccess } from "@/lib/staff-auth";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getNextCutoff } from "@/lib/pr-cutoff";
+import { formatBaht } from "@/lib/money";
 import { OrderHistoryList, type HistoryRow } from "@/components/branch/order-history-list";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -38,7 +39,7 @@ export default async function HistoryPage({ params }: { params: { branch: string
   const [withdrawalsRes, requestsRes] = await Promise.all([
     service
       .from("withdrawals")
-      .select("id, quantity, reason_category, requested_at, items(name)")
+      .select("id, quantity, reason_category, requested_at, items(name, unit), unit_cost, total_cost")
       .eq("staff_id", member.id)
       .order("requested_at", { ascending: false })
       .limit(50),
@@ -95,15 +96,19 @@ export default async function HistoryPage({ params }: { params: { branch: string
             ) : (
               <ul className="divide-y">
                 {withdrawals.map((w) => {
-                  const rel = w.items as { name?: string } | { name?: string }[] | null;
+                  const rel = w.items as { name?: string; unit?: string } | { name?: string; unit?: string }[] | null;
                   const itemName = Array.isArray(rel) ? rel[0]?.name : rel?.name;
+const itemUnit = (Array.isArray(rel) ? rel[0]?.unit : rel?.unit) ?? "";
                   return (
                     <li key={w.id} className="space-y-1 px-4 py-3">
                       <p className="text-sm font-medium text-slate-900">
-                        {itemName ?? "Item"} <span className="text-muted-foreground">× {w.quantity}</span>
+                        {itemName ?? "Item"} <span className="text-muted-foreground">× {w.quantity} {itemUnit}</span>
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatDate(w.requested_at)}
+                        {w.total_cost !== null && w.total_cost !== undefined
+                          ? ` · ${formatBaht(Number(w.total_cost))}`
+                          : " · cost not recorded"}
                         {w.reason_category ? ` · ${REASON_LABELS[w.reason_category] ?? w.reason_category}` : ""}
                       </p>
                     </li>

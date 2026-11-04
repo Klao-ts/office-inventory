@@ -80,8 +80,11 @@ export function RestockDialog({
             <Input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="e.g. Office Depot" />
           </div>
           <div className="space-y-1.5">
-            <Label>Unit Price (optional)</Label>
+            <Label>Price paid per unit, THB (optional)</Label>
             <Input type="number" step="0.01" min={0} value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} />
+            <p className="text-xs text-muted-foreground">
+              Updates the item&apos;s average cost. If you leave it blank, the average stays as it is.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label>Note</Label>

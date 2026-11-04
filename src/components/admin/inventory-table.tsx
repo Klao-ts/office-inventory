@@ -4,7 +4,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EditItemDialog } from "@/components/admin/edit-item-dialog";
-import { formatCurrency } from "@/lib/utils";
+import { formatBaht } from "@/lib/money";
 import type { Item } from "@/lib/supabase/database.types";
 import { PackagePlus } from "lucide-react";
 
@@ -28,7 +28,7 @@ export function InventoryTable({
           <TableHead>Category</TableHead>
           <TableHead>Item ID</TableHead>
           <TableHead>Seller</TableHead>
-          <TableHead>Unit Price</TableHead>
+          <TableHead>Avg cost</TableHead>
           <TableHead>Stock</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
@@ -46,7 +46,13 @@ export function InventoryTable({
               <TableCell>{item.category}</TableCell>
               <TableCell className="text-muted-foreground">{item.distributor_item_id ?? "—"}</TableCell>
               <TableCell className="text-muted-foreground">{item.seller ?? "—"}</TableCell>
-              <TableCell>{formatCurrency(item.unit_price)}</TableCell>
+              <TableCell>
+                {item.unit_price > 0 ? (
+                  formatBaht(item.unit_price)
+                ) : (
+                  <span className="text-xs text-amber-700">not set</span>
+                )}
+              </TableCell>
               <TableCell className="whitespace-nowrap">
                 {item.current_stock} {item.unit}
               </TableCell>
