@@ -158,6 +158,7 @@ export type OrderRequestEmail = {
   department: string;
   branch: string;
   cutoffLabel: string;
+  resubmission?: boolean;
   lines: { name: string; quantity: number; note: string | null }[];
 };
 
@@ -203,7 +204,7 @@ export async function notifyPurchaseRequest(req: OrderRequestEmail) {
       <p style="color:#666">Sent automatically by the Office Supplies Inventory system.</p>
     </div>`;
 
-  const subject = `Order request: ${req.staffName} (${branchLabel}), ${req.lines.length} item${
+  const subject = `Order request${req.resubmission ? " (resubmitted)" : ""}: ${req.staffName} (${branchLabel}), ${req.lines.length} item${
     req.lines.length === 1 ? "" : "s"
   }`;
 

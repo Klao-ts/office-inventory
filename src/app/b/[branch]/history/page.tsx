@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { isBranch } from "@/lib/branches";
 import { getCurrentStaff, hasAccess } from "@/lib/staff-auth";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getNextCutoff } from "@/lib/pr-cutoff";
+import { OrderHistoryList, type HistoryRow } from "@/components/branch/order-history-list";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +15,6 @@ const REASON_LABELS: Record<string, string> = {
   replacement: "Replacement",
   project: "Project-specific",
   other: "Other",
-};
-
-const STATUS_STYLES: Record<string, { label: string; className: string }> = {
-  pending: { label: "Waiting for review", className: "bg-amber-50 text-amber-700" },
-  approved: { label: "Approved", className: "bg-emerald-50 text-emerald-700" },
-  rejected: { label: "Declined", className: "bg-red-50 text-red-700" },
-  ordered: { label: "Ordered", className: "bg-teal-50 text-teal-700" },
 };
 
 function formatDate(value: string) {
@@ -49,7 +44,9 @@ export default async function HistoryPage({ params }: { params: { branch: string
       .limit(50),
     service
       .from("purchase_requests")
-      .select("id, item_name, quantity, note, status, admin_note, cutoff_date, created_at")
+      .select(
+        "id, group_id, item_name, quantity, note, status, admin_note, cutoff_date, created_at, resubmitted_from"
+      )
       .eq("staff_id", member.id)
       .order("created_at", { ascending: false })
       .limit(50),
@@ -58,42 +55,35 @@ export default async function HistoryPage({ params }: { params: { branch: string
   const withdrawals = withdrawalsRes.data ?? [];
   const requests = requestsRes.data ?? [];
 
+  // A resubmission is always newer than the line it came from, so it is in this list too.
+  const resubmittedIds = new Set<string>(
+    requests.map((r) => r.resubmitted_from as string | null).filter((v): v is string => !!v)
+  );
+
+  const rows: HistoryRow[] = requests.map((r) => ({
+    id: r.id,
+    group_id: r.group_id,
+    item_name: r.item_name,
+    quantity: r.quantity,
+    note: r.note,
+    status: r.status,
+    admin_note: r.admin_note,
+    sent_label: formatDate(r.created_at),
+    cutoff_label: formatDate(r.cutoff_date),
+    is_resubmission: !!r.resubmitted_from,
+    resubmitted: resubmittedIds.has(r.id),
+  }));
+
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">My History</h1>
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold text-slate-900">Order requests</h2>
-        <Card>
-          <CardContent className="p-0">
-            {requests.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">No order requests yet.</p>
-            ) : (
-              <ul className="divide-y">
-                {requests.map((r) => {
-                  const status = STATUS_STYLES[r.status] ?? STATUS_STYLES.pending;
-                  return (
-                    <li key={r.id} className="space-y-1 px-4 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-medium text-slate-900">
-                          {r.item_name} <span className="text-muted-foreground">× {r.quantity}</span>
-                        </p>
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}>
-                          {status.label}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Sent {formatDate(r.created_at)} · counts toward the {formatDate(r.cutoff_date)} cut-off
-                      </p>
-                      {r.note ? <p className="text-xs text-slate-600">Your note: {r.note}</p> : null}
-                      {r.admin_note ? <p className="text-xs text-slate-700">Admin: {r.admin_note}</p> : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        <p className="text-sm text-muted-foreground">
+          If something was declined, tick it to review and send it again for the next cut-off.
+        </p>
+        <OrderHistoryList rows={rows} branch={branch} nextCutoffLabel={getNextCutoff().label} />
       </section>
 
       <section className="space-y-2">

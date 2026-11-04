@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import Link from "next/link";
 import { isBranch } from "@/lib/branches";
 import { OrderRequestsManager, type RequestRow } from "@/components/admin/order-requests-manager";
 
@@ -79,7 +80,12 @@ export default async function OrdersPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Order Requests</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Order Requests</h1>
+          <Link href="/admin/orders/history" className="text-sm font-medium text-teal-700 hover:underline">
+            History by person →
+          </Link>
+        </div>
         <p className="mt-1 text-sm text-slate-500">
           Review what staff asked for, approve or decline it, then download the list for the seller.
         </p>
