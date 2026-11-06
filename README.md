@@ -110,3 +110,4 @@ Two employees scanning the QR code and submitting at the same instant will be se
 - **Search/autocomplete item dropdown**: swap the `Select` in `withdrawal-form.tsx` for a combobox (Radix `Command` + `Popover`) if the catalog grows large.
 - **CSV export**: add a route handler that streams `withdrawals`/`restocks` as CSV for admins.
 - **Multi-location inventory**: add a `locations` table and a `location_id` FK on `items`.
+Release 1 in progress.
